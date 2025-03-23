@@ -1,21 +1,40 @@
+//WIFI
+
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include "secrets.h"
 
-Adafruit_MPU6050 mpu;
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
 
-// Simple fall detection threshold
-const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
+const char* iftttWebhookURL = IFTTT_WEBHOOK_URL;
 
 // Pin definitions
 const int LED_PIN = 2;
 const int BUZZER_PIN = 4; 
+
+// Simple fall detection threshold
+const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
+
+Adafruit_MPU6050 mpu;
 
 // State variables
 bool fallDetected = false;
 
 void setup() {
   Serial.begin(115200);
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to Wi-Fi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected!");
   
   // Set pins as output
   pinMode(LED_PIN, OUTPUT);
@@ -35,8 +54,6 @@ void setup() {
   delay(100);
   digitalWrite(BUZZER_PIN, LOW);
 
-  Serial.println("Fall Detection System Starting");
-  
   // Initialize MPU6050
   if (!mpu.begin()) {
     Serial.println("Failed to find MPU6050 chip");
@@ -69,9 +86,9 @@ void loop() {
   float accGForce = accMagnitude / 9.8;
   
   // Print acceleration value
-  Serial.print("Acceleration: ");
-  Serial.print(accGForce);
-  Serial.println(" G");
+  // Serial.print("Acceleration: ");
+  // Serial.print(accGForce);
+  // Serial.println(" G");
   
   // Simple fall detection
   if (accGForce >= FALL_THRESHOLD && !fallDetected) {
@@ -97,6 +114,16 @@ void loop() {
     
     // Stop buzzer
     digitalWrite(BUZZER_PIN, LOW);
+
+        // Send HTTP request
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin(iftttWebhookURL);
+      int httpResponseCode = http.GET();
+      Serial.print("IFTTT response code: ");
+      Serial.println(httpResponseCode);
+      http.end();
+    }
 
     Serial.println("Fall detected and alerted. System reset.");
     
