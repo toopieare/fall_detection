@@ -4,7 +4,7 @@
 
 Adafruit_MPU6050 mpu;
 
-// Fall detection parameters - simplified
+// Simple fall detection threshold
 const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
 
 // LED pin
