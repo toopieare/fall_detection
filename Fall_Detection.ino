@@ -14,7 +14,8 @@ const char* iftttWebhookURL = IFTTT_WEBHOOK_URL;
 
 // Pin definitions
 const int LED_PIN = 2;
-const int BUZZER_PIN = 4; 
+const int BUZZER_PIN = 4;
+const int SWITCH_PIN = 15;
 
 // Simple fall detection threshold
 const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
@@ -39,6 +40,7 @@ void setup() {
   // Set pins as output
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(SWITCH_PIN, INPUT_PULLUP);
   
   // LED test at startup - blink twice
   digitalWrite(LED_PIN, HIGH);
@@ -89,10 +91,18 @@ void loop() {
   // Serial.print("Acceleration: ");
   // Serial.print(accGForce);
   // Serial.println(" G");
+
+  // Switch detection - digitalRead to return LOW when button is pressed
+  bool switchPressed = (digitalRead(SWITCH_PIN) == LOW);
   
-  // Simple fall detection
-  if (accGForce >= FALL_THRESHOLD && !fallDetected) {
-    Serial.println("FALL DETECTED! Acceleration: " + String(accGForce) + " G");
+  // Simple fall detection OR if switch is pressed
+  if ((accGForce >= FALL_THRESHOLD || switchPressed) && !fallDetected) {
+    if (switchPressed) {
+      Serial.println("TEST BUTTON PRESSED - Simulating fall!");
+    } else {
+      Serial.println("FALL DETECTED! Acceleration: " + String(accGForce) + " G");
+    }
+
     fallDetected = true;
     
     // Turn on LED
