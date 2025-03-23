@@ -7,8 +7,9 @@ Adafruit_MPU6050 mpu;
 // Simple fall detection threshold
 const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
 
-// LED pin
+// Pin definitions
 const int LED_PIN = 2;
+const int BUZZER_PIN = 4; 
 
 // State variables
 bool fallDetected = false;
@@ -16,8 +17,9 @@ bool fallDetected = false;
 void setup() {
   Serial.begin(115200);
   
-  // Set up LED
+  // Set pins as output
   pinMode(LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
   
   // LED test at startup - blink twice
   digitalWrite(LED_PIN, HIGH);
@@ -27,7 +29,12 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);
   delay(300);
   digitalWrite(LED_PIN, LOW);
-  
+
+  // Buzzer test at startup
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(100);
+  digitalWrite(BUZZER_PIN, LOW);
+
   Serial.println("Fall Detection System Starting");
   
   // Initialize MPU6050
@@ -74,6 +81,9 @@ void loop() {
     // Turn on LED
     digitalWrite(LED_PIN, HIGH);
     
+    // Start buzzer
+    digitalWrite(BUZZER_PIN, HIGH);
+
     // Blink LED 5 times
     for (int i = 0; i < 5; i++) {
       digitalWrite(LED_PIN, LOW);
@@ -85,7 +95,10 @@ void loop() {
     // Turn off LED when done
     digitalWrite(LED_PIN, LOW);
     
-    Serial.println("Blinking complete. System reset.");
+    // Stop buzzer
+    digitalWrite(BUZZER_PIN, LOW);
+
+    Serial.println("Fall detected and alerted. System reset.");
     
     // Reset fall detection
     fallDetected = false;
