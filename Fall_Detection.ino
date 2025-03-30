@@ -1,4 +1,4 @@
-// WiFi - Power-Optimized Version
+// Wifi connect only when fall is detected.
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -24,7 +24,9 @@ const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
 // Power saving interval settings
 const int SENSOR_READ_INTERVAL_MS = 500;  // How often to read the accelerometer (500 = 0.5 seconds)
 const int CPU_FREQUENCY_MHZ = 80;         // Lower CPU frequency to save power (240 is max)
-const int WIFI_CHECK_INTERVAL_MS = 30000; // How often to check WiFi connection (30 seconds)
+
+// WiFi connection timeout
+const int WIFI_CONNECTION_TIMEOUT_MS = 15000; // 15 seconds to connect to WiFi
 
 Adafruit_MPU6050 mpu;
 
@@ -32,7 +34,6 @@ Adafruit_MPU6050 mpu;
 bool fallDetected = false;
 volatile bool motionDetected = false;
 unsigned long lastSensorReadTime = 0;
-unsigned long lastWifiCheckTime = 0;
 unsigned long lastLedToggleTime = 0;
 bool ledState = false;
 
@@ -61,25 +62,50 @@ void configureMPUInterrupt() {
   Serial.println("MPU interrupt configured successfully");
 }
 
-void connectToWiFi() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("Connecting to Wi-Fi...");
-    WiFi.begin(ssid, password);
-    
-    // Wait for connection with timeout
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-      delay(500);
-      Serial.print(".");
-      attempts++;
-    }
-    
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("Connected!");
-    } else {
-      Serial.println("Failed to connect!");
-    }
+bool connectToWiFi() {
+  Serial.print("Connecting to Wi-Fi...");
+  WiFi.mode(WIFI_STA); // Set station mode
+  WiFi.begin(ssid, password);
+  
+  // Wait for connection with timeout
+  unsigned long startAttemptTime = millis();
+  
+  while (WiFi.status() != WL_CONNECTED && 
+         millis() - startAttemptTime < WIFI_CONNECTION_TIMEOUT_MS) {
+    delay(500);
+    Serial.print(".");
   }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected!");
+    return true;
+  } else {
+    Serial.println("Failed to connect!");
+    WiFi.disconnect(true);  // Disconnect and turn off WiFi
+    WiFi.mode(WIFI_OFF);    // Turn off WiFi
+    return false;
+  }
+}
+
+bool sendAlertToServer() {
+  if (WiFi.status() != WL_CONNECTED) {
+    return false;
+  }
+  
+  HTTPClient http;
+  http.begin(iftttWebhookURL);
+  int httpResponseCode = http.GET();
+  Serial.print("IFTTT response code: ");
+  Serial.println(httpResponseCode);
+  http.end();
+  
+  return (httpResponseCode == 200);
+}
+
+void disconnectWiFi() {
+  Serial.println("Disconnecting WiFi to save power");
+  WiFi.disconnect(true);  // Disconnect and turn off WiFi
+  WiFi.mode(WIFI_OFF);    // Turn off WiFi
 }
 
 void setup() {
@@ -112,11 +138,6 @@ void setup() {
   // Initialize Wire (I2C)
   Wire.begin();
   
-  // Initialize WiFi (no specific power optimizations yet)
-
-  // Connect to WiFi
-  connectToWiFi();
-  
   // Initialize MPU6050
   for (int attempt = 0; attempt < 5; attempt++) {
     if (mpu.begin()) {
@@ -142,27 +163,19 @@ void setup() {
   // Reset motion detected flag
   motionDetected = false;
   
+  // Turn off WiFi initially
+  WiFi.mode(WIFI_OFF);
+  
   Serial.println("System ready - waiting for fall...");
   
   // Initialize timers
   lastSensorReadTime = millis();
-  lastWifiCheckTime = millis();
   lastLedToggleTime = millis();
 }
 
 void loop() {
   // Track current time to minimize millis() calls
   unsigned long currentMillis = millis();
-  
-  // Periodically check and reconnect WiFi if needed
-  if (currentMillis - lastWifiCheckTime >= WIFI_CHECK_INTERVAL_MS) {
-    lastWifiCheckTime = currentMillis;
-    
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("WiFi disconnected, attempting to reconnect...");
-      connectToWiFi();
-    }
-  }
   
   // Only read sensors periodically to save power
   if (currentMillis - lastSensorReadTime >= SENSOR_READ_INTERVAL_MS || motionDetected) {
@@ -210,31 +223,31 @@ void loop() {
         delay(200);
       }
       
+      // Keep LED on for visual indication
+      digitalWrite(LED_PIN, HIGH);
+      
+      // === CONNECT TO WIFI ONLY WHEN FALL IS DETECTED ===
+      Serial.println("Fall detected - connecting to WiFi to send alert...");
+      bool connected = connectToWiFi();
+      
+      if (connected) {
+        // Send alert
+        bool alertSent = sendAlertToServer();
+        Serial.println(alertSent ? "Alert sent successfully!" : "Failed to send alert!");
+        
+        // Disconnect WiFi to save power
+        disconnectWiFi();
+      } else {
+        Serial.println("Could not connect to WiFi to send alert.");
+      }
+  
       // Turn off LED when done
       digitalWrite(LED_PIN, LOW);
       
       // Stop buzzer
       digitalWrite(BUZZER_PIN, LOW);
       
-      // Make sure WiFi is connected before sending alert
-      if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi disconnected, reconnecting before sending alert...");
-        connectToWiFi();
-      }
-  
-      // Send HTTP request if connected
-      if (WiFi.status() == WL_CONNECTED) {
-        HTTPClient http;
-        http.begin(iftttWebhookURL);
-        int httpResponseCode = http.GET();
-        Serial.print("IFTTT response code: ");
-        Serial.println(httpResponseCode);
-        http.end();
-      } else {
-        Serial.println("Failed to send alert: WiFi not connected");
-      }
-  
-      Serial.println("Fall detected and alerted. System reset.");
+      Serial.println("Fall detection sequence complete. System reset.");
       
       // Reset fall detection
       fallDetected = false;
