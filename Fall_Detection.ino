@@ -1,4 +1,4 @@
-// Wifi connect only when fall is detected.
+// Wifi connect only when fall is detected. + toggles for power optimization config
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -24,6 +24,11 @@ const float FALL_THRESHOLD = 1.5;   // Acceleration threshold in G
 // Power saving interval settings
 const int SENSOR_READ_INTERVAL_MS = 500;  // How often to read the accelerometer (500 = 0.5 seconds)
 const int CPU_FREQUENCY_MHZ = 80;         // Lower CPU frequency to save power (240 is max)
+
+// Configuration flags for different detection methods
+const bool USE_POLLING_INTERVAL = false;  // Set to false to disable polling interval
+const bool USE_INTERRUPTS = true;         // Set to false to disable interrupt-based detection
+const bool USE_CONTINUOUS_SENSING = true; // Set to true to enable constant sensor readings (ignores interval)
 
 // WiFi connection timeout
 const int WIFI_CONNECTION_TIMEOUT_MS = 15000; // 15 seconds to connect to WiFi
@@ -53,13 +58,17 @@ void configureMPUInterrupt() {
   mpu.setMotionDetectionDuration(1);    // Quick response to motion (1-255)
   mpu.setMotionInterrupt(true);
   
-  // Install GPIO ISR service
-  gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1);
-  
-  // Attach the interrupt handler
-  attachInterrupt(digitalPinToInterrupt(MPU_INT_PIN), motionInterrupt, RISING);
-  
-  Serial.println("MPU interrupt configured successfully");
+  if (USE_INTERRUPTS) {
+    // Install GPIO ISR service
+    gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1);
+    
+    // Attach the interrupt handler
+    attachInterrupt(digitalPinToInterrupt(MPU_INT_PIN), motionInterrupt, RISING);
+    
+    Serial.println("MPU interrupt configured successfully");
+  } else {
+    Serial.println("MPU interrupt disabled by configuration");
+  }
 }
 
 bool connectToWiFi() {
@@ -167,6 +176,18 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   
   Serial.println("System ready - waiting for fall...");
+  Serial.print("Detection mode: ");
+  if (USE_CONTINUOUS_SENSING) {
+    Serial.println("CONTINUOUS sensing (maximum sensitivity, highest power usage)");
+  } else if (USE_POLLING_INTERVAL && USE_INTERRUPTS) {
+    Serial.println("BOTH polling and interrupts");
+  } else if (USE_POLLING_INTERVAL) {
+    Serial.println("Polling ONLY");
+  } else if (USE_INTERRUPTS) {
+    Serial.println("Interrupts ONLY");
+  } else {
+    Serial.println("WARNING: All detection methods DISABLED! Only manual button will work.");
+  }
   
   // Initialize timers
   lastSensorReadTime = millis();
@@ -177,9 +198,25 @@ void loop() {
   // Track current time to minimize millis() calls
   unsigned long currentMillis = millis();
   
-  // Only read sensors periodically to save power
-  if (currentMillis - lastSensorReadTime >= SENSOR_READ_INTERVAL_MS || motionDetected) {
-    lastSensorReadTime = currentMillis;
+  // Only check sensors if:
+  // 1. We have motion interrupt (if interrupts enabled), OR
+  // 2. It's time to poll (if polling interval enabled), OR
+  // 3. Continuous sensing is enabled (checks every loop)
+  bool shouldCheckSensors = (USE_INTERRUPTS && motionDetected) || 
+                           (USE_POLLING_INTERVAL && 
+                            (currentMillis - lastSensorReadTime >= SENSOR_READ_INTERVAL_MS)) ||
+                           USE_CONTINUOUS_SENSING;
+  
+  // Process sensor data when needed
+  if (shouldCheckSensors) {
+    // If using continuous sensing without polling intervals, 
+    // only update the timestamp if enough time has passed to avoid serial flooding
+    if (!USE_POLLING_INTERVAL && USE_CONTINUOUS_SENSING && 
+        (currentMillis - lastSensorReadTime >= 100)) { // 100ms minimum between serial updates
+      lastSensorReadTime = currentMillis;
+    } else if (USE_POLLING_INTERVAL || motionDetected) {
+      lastSensorReadTime = currentMillis;
+    }
     
     // Get sensor data
     sensors_event_t a, g, temp;
@@ -193,13 +230,17 @@ void loop() {
     // Convert to G force
     float accGForce = accMagnitude / 9.8;
     
-    // Switch detection
+    // Switch detection - always check the switch
     bool switchPressed = (digitalRead(SWITCH_PIN) == LOW);
     
-    // Check for motion interrupt
-    if (motionDetected) {
-      Serial.println("Motion detected by interrupt!");
-      motionDetected = false; // Reset the flag
+    // Debug print on motion interrupt or continuous mode (but not too often)
+    if (motionDetected || (USE_CONTINUOUS_SENSING && accGForce >= FALL_THRESHOLD)) {
+      if (currentMillis - lastSensorReadTime >= 100) { // Limit serial printing frequency
+        Serial.println("Motion detected! Acceleration: " + String(accGForce) + " G");
+        if (motionDetected) {
+          motionDetected = false; // Reset the flag
+        }
+      }
     }
     
     // Fall detection logic
@@ -252,6 +293,61 @@ void loop() {
       // Reset fall detection
       fallDetected = false;
     }
+  }
+  
+  // Always check the manual switch even without sensor readings
+  // This ensures the button works even if all detection methods are disabled
+  if (!fallDetected && digitalRead(SWITCH_PIN) == LOW) {
+    Serial.println("Manual button pressed - triggering fall detection");
+    // Process as a fall
+    float accGForce = 0.0; // No acceleration data if we're not reading sensors
+    
+    Serial.println("TEST BUTTON PRESSED - Fall detected!");
+    
+    fallDetected = true;
+    
+    // Turn on LED
+    digitalWrite(LED_PIN, HIGH);
+    
+    // Start buzzer
+    digitalWrite(BUZZER_PIN, HIGH);
+
+    // Blink LED 5 times
+    for (int i = 0; i < 5; i++) {
+      digitalWrite(LED_PIN, LOW);
+      delay(200);
+      digitalWrite(LED_PIN, HIGH);
+      delay(200);
+    }
+    
+    // Keep LED on for visual indication
+    digitalWrite(LED_PIN, HIGH);
+    
+    // === CONNECT TO WIFI ONLY WHEN FALL IS DETECTED ===
+    Serial.println("Fall detected - connecting to WiFi to send alert...");
+    bool connected = connectToWiFi();
+    
+    if (connected) {
+      // Send alert
+      bool alertSent = sendAlertToServer();
+      Serial.println(alertSent ? "Alert sent successfully!" : "Failed to send alert!");
+      
+      // Disconnect WiFi to save power
+      disconnectWiFi();
+    } else {
+      Serial.println("Could not connect to WiFi to send alert.");
+    }
+
+    // Turn off LED when done
+    digitalWrite(LED_PIN, LOW);
+    
+    // Stop buzzer
+    digitalWrite(BUZZER_PIN, LOW);
+    
+    Serial.println("Fall detection sequence complete. System reset.");
+    
+    // Reset fall detection
+    fallDetected = false;
   }
   
   // Short delay to prevent CPU from being 100% utilized
