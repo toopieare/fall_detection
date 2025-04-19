@@ -1,5 +1,6 @@
 *.hex
 *.elf
 *.bin
+*.ipynb_checkpoints/
 
 secrets.h
