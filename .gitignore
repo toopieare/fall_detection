@@ -2,5 +2,5 @@
 *.elf
 *.bin
 *.ipynb_checkpoints/
-
+.venv/
 secrets.h
