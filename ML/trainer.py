@@ -8,8 +8,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 # Configuration
-DATA_DIR = 'data'  # Directory containing your CSV files
-WINDOW_SIZE = 40   # Window size for feature extraction (match Arduino code)
+DATA_DIR = 'data'  # Directory containing CSV files
+WINDOW_SIZE = 40   # Window size for feature extraction
 STEP_SIZE = 20     # Step size for sliding window (50% overlap for training data)
 TEST_SIZE = 0.2    # Portion of data to use for testing
 
@@ -128,7 +128,7 @@ def load_and_process_data(data_dir=DATA_DIR):
 
 def train_model(df):
     """
-    Train a logistic regression model with a more balanced approach
+    Train a logistic regression model with a balanced approach
     """
     # Convert actions to binary (fall vs. non-fall)
     df['is_fall'] = df['action'].apply(lambda x: 1 if "FALL" in x else 0)
@@ -175,7 +175,7 @@ def train_model(df):
     # Try a range of models with different settings
     from sklearn.model_selection import GridSearchCV
     
-    # 1. Start with a properly tuned logistic regression
+    # Start with a properly tuned logistic regression
     param_grid = {
         'C': [0.01, 0.1, 1.0, 10.0],  # Regularization strength
         'class_weight': [None, 'balanced', {0: 1, 1: 1.5}, {0: 1, 1: 2}]  # Try different class weights
@@ -205,10 +205,9 @@ def train_model(df):
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred))
     
-    # Replace your existing confusion matrix code with:
     plot_confusion_matrix(y_test, y_pred, 'Logistic Regression Confusion Matrix', 'lr_confusion_matrix.png')
     
-    # 2. Try a random forest (optional)
+    # Try a random forest classifier
     from sklearn.ensemble import RandomForestClassifier
     
     rf_model = RandomForestClassifier(
@@ -310,7 +309,7 @@ bool isFall(float *features) {{
         
         # Random Forest would be complex to implement in Arduino
         # Instead create a simplified decision tree model or logistic regression
-        # Here's a simplified decision function based on the most important features
+        # Use a simplified decision function based on the most important features
         
         # Sort features by importance
         sorted_features = sorted(zip(feature_names, range(len(feature_names)), importances), 
@@ -436,7 +435,7 @@ def main():
         print("\nGenerating feature visualizations...")
         visualize_features(processed_data)
         
-        # Train the model - now returns scaling info too
+        # Train the model
         print("\nTraining model...")
         model, feature_means, feature_stds = train_model(processed_data)
         
