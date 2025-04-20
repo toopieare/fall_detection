@@ -1,18 +1,35 @@
 
-// Fall detection model coefficients
-// Trained on 2025-04-20 08:46:48
+// Fall detection model - Simplified from Random Forest
+// Trained on 2025-04-20 10:44:39
 
-// Feature order: mean_magnitude, std_magnitude, max_magnitude, energy
-const float MODEL_WEIGHTS[4] = { -0.09054448f, 0.00813667f, 0.04179285f, 0.00001560f };
-const float MODEL_BIAS = -0.00065902f;
+// Feature scaling parameters (needed for standardization)
+const float FEATURE_MEANS[4] = { 26.17842627f, 2.01447860f, 28.79146328f, 78980.42367051f };
+const float FEATURE_STDS[4] = { 35.53828754f, 4.70877739f, 35.31088856f, 162331.33219809f };
 
-// Function to predict if a set of features indicates a fall
-bool isFall(const float *features) {
-  float score = MODEL_BIAS;
+// The two most important features are: max_magnitude and std_magnitude
+
+// Sensitivity adjustment (can be tuned after deployment)
+float SENSITIVITY = 0.0f;  // Higher = more falls detected but more false positives
+
+// Function to standardize features
+void standardizeFeatures(float *features) {
   for (int i = 0; i < 4; i++) {
-    score += MODEL_WEIGHTS[i] * features[i];
+    features[i] = (features[i] - FEATURE_MEANS[i]) / FEATURE_STDS[i];
   }
+}
+
+// Simplified decision function based on random forest results
+bool isFall(float *features) {
+  // First standardize the features
+  standardizeFeatures(features);
   
-  // If score > 0, predict fall (probability > 0.5)
-  return score > 0;
+  // Use the most important features for a simplified model
+  float score = 0.0f;
+  
+  // Weighted sum of important features (based on feature importance)
+  score += features[2] * 0.3505f;
+  score += features[1] * 0.3034f;
+  
+  // Apply threshold determined experimentally from the random forest
+  return score > (0.5f - SENSITIVITY);
 }
