@@ -253,6 +253,7 @@ The project contains several key files and directories, each with a specific pur
 │   ├── sample.ino               # Sample implementation for testing the model
 │   └── requirements.txt         # Python dependencies for notebooks
 ├── data/                        # Training data (CSV files of different movements)
+├── alternative-approaches/      # Alternative approach for fall prediction on sound
 ```
 
 ### File Descriptions
