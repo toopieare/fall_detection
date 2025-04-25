@@ -328,7 +328,8 @@ The project contains several key files and directories, each with a specific pur
    - Alternative approaches that were tested but not used
    - `mic-training.ipynb`: Neural network trained on kaggle dataset
    - `neural_network.ino`: Attempt to load model on ESP32 but failed due to its size
-   - `mqtt_stream.ino`, `sound-detection.h5` & `main.py`: Streaming attempt to a server running trained neural network but results were not accurate due to differences in data quality streamed by the microphone and the dataset
+   - `sound-detection.h5` & `main.py`: Streaming attempt to a server running trained neural network but results were not accurate due to differences in data quality streamed by the microphone and the dataset
+   - `mqtt_stream.ino`, `receive-and-process.ipynb`: Alternative audio streaming through MQTT
 
 ## Project Information
 
