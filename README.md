@@ -6,7 +6,7 @@ A smart wearable fall detection system developed as part of CS5272 Project, usin
 
 **Sound-Based Fall Detection:**
 
-A new implementation using audio data to detect falls has been added. See the [Sound-Based Fall Detection README](sound-based/README.md). for more details.
+An alternative implementation using audio data to detect falls has been added. See the [Sound-Based Fall Detection README](sound-based/README.md). for more details.
 
 ## Problem Statement
 
