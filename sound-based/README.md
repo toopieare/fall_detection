@@ -103,11 +103,15 @@ We collected audio data corresponding to both fall and non-fall activities using
 
 ## Usage
 
+### On the Client Side (ESP32):
+
 1. **Trying to Connect to the Wi-Fi**: RED LED Light
 2. **Connected to the Wi-Fi**: GREEN LED Light
 3. **Trying to Connect to the Server**: GREEN LED Light
 4. **Connected and Transmitting Data**: BLUE LED Light
 
-## Usage
+### On the Server Side:
 
-- Once the Flask Server is showing Data is being received, it is an indicator that the device is sending data
+1. Once the Flask Server is showing Data is being received, it is an indicator that the device is sending data
+
+![alt text](image.png)

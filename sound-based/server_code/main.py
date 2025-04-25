@@ -26,7 +26,6 @@ def udp_listener():
     while True:
         data, addr = sock.recvfrom(1024)  # Adjust buffer size if needed
         with open(PCM_FILE, "ab") as f:
-            print("Write")
             f.write(data)
         print(f"[UDP] Received {len(data)} bytes from {addr} [Chunk {i}]")
         i += 1
