@@ -324,6 +324,12 @@ The project contains several key files and directories, each with a specific pur
     - Organized by movement type (falling_forward, falling_backwards, walking, etc.)
     - Used for training and evaluating the fall detection model
 
+11. **alternative-approaches/** directory
+   - Alternative approaches that were tested but not used
+   - `mic-training.ipynb`: Neural network trained on kaggle dataset
+   - `neural_network.ino`: Attempt to load model on ESP32 but failed due to its size
+   - `mqtt_stream.ino`, `sound-detection.h5` & `main.py`: Streaming attempt to a server running trained neural network but results were not accurate due to differences in data quality streamed by the microphone and the dataset
+
 ## Project Information
 
 **CS5272 Project - Group 10**
