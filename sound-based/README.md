@@ -36,7 +36,7 @@ This project includes the following features:
 
 ## Software Architecture
 
-Unlike the Fall Detection implementation using accelerometer data,this implementation utilizes acoustic signals for detecting falls. The device continuously captures ambient sound data, which necessitates keeping the microphone and associated processing components active at all times. As a result, the system cannot enter low-power or deep sleep modes, nor be repurposed for other tasks during operation.
+Unlike the Fall Detection implementation using accelerometer data,this implementation utilizes acoustic signals for detecting falls. The device continuously captures ambient sound data, which necessitates keeping the microphone and associated processing components active at all times. As a result, the system cannot enter low-power or deep sleep modes.
 
 In this implementation, the device operates in a persistent listening state and transmits raw sound data to a remote server via the UDP protocol for minimal latency. The server then processes the incoming audio stream using a machine learning model trained to identify fall-related acoustic patterns.
 
