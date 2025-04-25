@@ -175,7 +175,7 @@ The machine learning approach significantly improved detection reliability compa
    - Add the following content, replacing the placeholders with your actual information:
 
    ```cpp
-   #define WIFI_SSID "your_wifi_ssid"https://chatgpt.com/c/680b3a34-b230-800b-a4fb-3f145d47d3c9
+   #define WIFI_SSID "your_wifi_ssid"
    #define WIFI_PASSWORD "your_wifi_password"
    #define IFTTT_WEBHOOK_URL "your_ifttt_webhook_url"
    ```
