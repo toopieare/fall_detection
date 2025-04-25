@@ -1,11 +1,16 @@
 # Fall Detection Device
+
 https://github.com/toopieare/fall_detection
 
 A smart wearable fall detection system developed as part of CS5272 Project, using accelerometer data to detect falls and send alerts through multiple notification methods.
 
+**Sound-Based Fall Detection:**
+
+An alternative implementation using audio data to detect falls has been added. See the [Sound-Based Fall Detection README](sound-based/README.md). for more details.
+
 ## Problem Statement
 
-Falls represent a critical health risk for elderly individuals, often leading to severe injuries, reduced quality of life, and increased healthcare costs. While there are fall detection solutions for the elderly currently available in the market, the extent of adoption of these solutions is limited. 
+Falls represent a critical health risk for elderly individuals, often leading to severe injuries, reduced quality of life, and increased healthcare costs. While there are fall detection solutions for the elderly currently available in the market, the extent of adoption of these solutions is limited.
 
 Some examples of existing gerontech solutions include wall-mounted fall detectors and motion sensor floor mats. Alternative wearable devices with fall detection capabilities that don't require physical installation, such as smartwatches, are often too expensive for the elderly. Additionally, their reliance on battery power requires regular charging, which may be difficult for elderly users to remember.
 
@@ -75,6 +80,7 @@ B- → Black wire (-)
 ## Software Architecture
 
 The device operates in three main states:
+
 1. **SLEEPING**: Light sleep mode to save power, waiting for motion
 2. **MONITORING**: Actively monitoring accelerometer data for falls
 3. **ALERT**: Sending alerts after fall detection
@@ -88,15 +94,17 @@ Our project implements machine learning techniques to improve the reliability of
 We collected movement data for both falls and non-fall activities:
 
 **Accelerometer data:**
+
 - **Non-falls**: Walking, Sitting, Bending down, Hand waving
 - **Falls**: Falling backwards, Falling forwards
 
 ### Feature Extraction
 
 For each window of accelerometer data (40 samples), we calculate the following features:
+
 1. Mean magnitude of acceleration
 2. Standard deviation of magnitude
-3. Maximum magnitude 
+3. Maximum magnitude
 4. Energy (sum of squared magnitudes)
 
 ### ML Model Performance
@@ -104,12 +112,14 @@ For each window of accelerometer data (40 samples), we calculate the following f
 We trained both Logistic Regression and Random Forest models, with Random Forest showing better performance:
 
 **Random Forest Model Results:**
+
 - **Accuracy**: 75.6%
 - **F1 Score**: 76.5%
 - **Precision (falls)**: 74% (74% of fall alerts are actual falls)
 - **Recall (falls)**: 79% (catches 79% of actual falls)
 
 **Feature Importances:**
+
 - **max_magnitude**: 35.1% importance
 - **std_magnitude**: 30.3% importance
 - **energy**: 17.9% importance
@@ -120,16 +130,19 @@ The machine learning approach significantly improved detection reliability compa
 ## Setup and Installation
 
 ### Hardware Setup
+
 1. Connect the components according to the wiring diagram above
 2. Ensure the battery is charged (connect to a 5V source via the TP4056)
 
 ### Software Setup and Compilation
 
 1. **Install Arduino IDE** (version 1.8.19 or later recommended)
+
    - Download from [Arduino's official website](https://www.arduino.cc/en/software)
    - Install following the instructions for your operating system
 
 2. **Install ESP32 Board Support**:
+
    - Open Arduino IDE
    - Go to File > Preferences
    - Add `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json` to Additional Board URLs field
@@ -138,6 +151,7 @@ The machine learning approach significantly improved detection reliability compa
    - Search for "ESP32" and install the ESP32 package by Espressif Systems
 
 3. **Install Required Libraries**:
+
    - Go to Tools > Manage Libraries
    - Search for and install the following libraries:
      - `Adafruit MPU6050` (which automatically installs `Adafruit Sensor`)
@@ -145,6 +159,7 @@ The machine learning approach significantly improved detection reliability compa
    - Note: `WiFi` and `HTTPClient` come with the ESP32 board package
 
 4. **Configure Board Settings**:
+
    - Go to Tools > Board and select "ESP32 Dev Module"
    - Set the following parameters:
      - Flash Mode: "QIO"
@@ -155,10 +170,12 @@ The machine learning approach significantly improved detection reliability compa
      - CPU Frequency: "80MHz" (for power savings)
 
 5. **Create the secrets.h file**:
+
    - In the same directory as your main sketch, create a new file named `secrets.h`
    - Add the following content, replacing the placeholders with your actual information:
+
    ```cpp
-   #define WIFI_SSID "your_wifi_ssid"
+   #define WIFI_SSID "your_wifi_ssid"https://chatgpt.com/c/680b3a34-b230-800b-a4fb-3f145d47d3c9
    #define WIFI_PASSWORD "your_wifi_password"
    #define IFTTT_WEBHOOK_URL "your_ifttt_webhook_url"
    ```
@@ -173,6 +190,7 @@ The machine learning approach significantly improved detection reliability compa
      - Some ESP32 boards may require pressing the EN button after initiating upload
 
 ### Setting up IFTTT Notifications
+
 1. Create an account on [IFTTT](https://ifttt.com)
 2. Create a new Applet:
    - For "If This", select Webhooks and "Receive a web request"
@@ -197,11 +215,13 @@ The machine learning approach significantly improved detection reliability compa
 ## Power Consumption
 
 The device has multiple power configurations:
+
 - **Sleep Mode**: ~9.4 mA (using light sleep)
 - **Monitoring Mode**: ~38.1 mA
 - **Alert Mode**: ~120 mA (peak during WiFi transmission)
 
 Expected battery life:
+
 - With 1000 mAh battery: ~26+ hours in normal operating conditions on mnitoring mode, ~106+ hours in light sleep mode
 - Varies based on frequency of motion detection and alerts
 
@@ -238,18 +258,21 @@ The project contains several key files and directories, each with a specific pur
 ### File Descriptions
 
 1. **Fall_Detection.ino**
+
    - The main Arduino sketch that runs on the ESP32
    - Implements fall detection, sleep mode, WiFi connection, and alert functionality
    - Uses MPU6050 interrupt-based monitoring for power efficiency
    - Contains state machine for handling different device states (sleeping, monitoring, alert)
 
 2. **secrets.h** (you need to create this)
+
    - Contains sensitive credentials:
      - WiFi SSID and password
      - IFTTT webhook URL for sending notifications
    - Not included in the repository for security reasons
 
 3. **ML/trainer.py**
+
    - Python script for training the fall detection model
    - Processes CSV files containing accelerometer data
    - Extracts features from movement data
@@ -258,23 +281,27 @@ The project contains several key files and directories, each with a specific pur
    - Creates visualization of model performance
 
 4. **ML/fall_detection_model.h**
+
    - Header file containing the trained model parameters
    - Generated by the trainer.py script
    - Includes feature scaling parameters and model coefficients
    - Used by the main sketch to make fall detection decisions
 
 5. **ML/data_collection/data_collection.ino**
+
    - Arduino sketch for collecting movement data
    - Configures the ESP32 to record accelerometer data to an SD card
    - Includes user interface (buttons, LED) for selecting actions and controlling recording
    - Creates properly formatted CSV files for training the model
 
 6. **ML/fall_detection_ml/fall_detection_ml.ino**
+
    - Standalone implementation of the ML-based fall detection
    - Useful for testing and validating the ML model
    - Includes emergency button functionality and alerting mechanism
 
 7. **notebook/fall_detection.ipynb**
+
    - Jupyter notebook showing the data analysis and model development process
    - Contains code for processing accelerometer data
    - Implements feature extraction algorithms
@@ -282,13 +309,15 @@ The project contains several key files and directories, each with a specific pur
    - Includes visualizations and performance metrics
 
 8. **notebook/sample.ino**
+
    - Example Arduino code showing how to use the fall detection model
    - Provides a simpler implementation for testing purposes
    - Demonstrates feature extraction and classification
 
 9. **notebook/requirements.txt**
-    - Lists Python libraries required for the notebook and training scripts
-    - Includes pandas, numpy, and scikit-learn
+
+   - Lists Python libraries required for the notebook and training scripts
+   - Includes pandas, numpy, and scikit-learn
 
 10. **data/** directory
     - Contains CSV files with recorded movement data
@@ -297,7 +326,7 @@ The project contains several key files and directories, each with a specific pur
 
 ## Project Information
 
-**CS5272 Project - Group 10** 
+**CS5272 Project - Group 10**
 
 **Team Members:**
 
