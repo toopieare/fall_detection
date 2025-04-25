@@ -42,9 +42,9 @@ In this implementation, the device operates in a persistent listening state and 
 
 ## Limitations
 
-- The system requires a constant power supply, as it cannot enter low-power or deep sleep modes.
+The system requires a constant power supply, as it cannot enter low-power or deep sleep modes.
 
-### Data Collection
+## Data Collection
 
 We collected audio data corresponding to both fall and non-fall activities using an ESP32 microcontroller connected to an INMP441 digital MEMS microphone via the I2S interface. The audio was recorded in Pulse-Code Modulation (PCM) format with a 16-bit depth, 16 kHz sampling rate, and mono channel configuration, ensuring compatibility with audio classification models. The raw PCM files were subsequently converted into WAV format, preserving the original recording specifications. This conversion facilitated easier preprocessing and model compatibility, especially for training with the YAMNet model, which requires 16 kHz mono WAV inputs. Each audio sample was labeled as either "fall" or "non-fall" to support supervised learning.
 
